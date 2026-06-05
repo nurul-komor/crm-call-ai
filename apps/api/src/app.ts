@@ -10,6 +10,7 @@ import {
 } from './middleware/security.js';
 import { aiProvidersRouter } from './modules/ai-providers/routes.js';
 import { authRouter } from './modules/auth/routes.js';
+import { campaignsRouter } from './modules/campaigns/routes.js';
 import { contactChannelsRouter } from './modules/contact-channels/routes.js';
 import { customerListsRouter } from './modules/customer-lists/routes.js';
 import { customersRouter } from './modules/customers/routes.js';
@@ -40,6 +41,7 @@ export function createApp(opts: AppOptions = {}): Express {
   v1.use('/contact-channels', contactChannelsRouter);
   v1.use('/voice-profiles', voiceProfilesRouter);
   v1.use('/ai-providers', aiProvidersRouter);
+  v1.use('/campaigns', campaignsRouter);
   app.use('/api/v1', v1);
 
   app.use((req, _res, next) => next(new AppError('not_found', `Route not found: ${req.method} ${req.path}`, 404)));

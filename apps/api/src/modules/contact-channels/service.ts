@@ -73,7 +73,6 @@ function isDupKey(err: unknown): boolean {
 // Returns 0 if the campaigns module isn't built yet (Phase 1K does that).
 async function checkCampaignReferences(channelId: string): Promise<number> {
   try {
-    // @ts-expect-error campaigns module is built in Phase 1K
     const mod = await import('../campaigns/model.js');
     if (!mod?.CampaignModel) return 0;
     return mod.CampaignModel.countDocuments({

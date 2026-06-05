@@ -8,8 +8,10 @@ import {
   helmetMiddleware,
   rateLimitMiddleware,
 } from './middleware/security.js';
+import { twimlRouter } from './routes/twiml.js';
 import { aiProvidersRouter } from './modules/ai-providers/routes.js';
 import { authRouter } from './modules/auth/routes.js';
+import { callsRouter } from './modules/calls/routes.js';
 import { campaignsRouter } from './modules/campaigns/routes.js';
 import { contactChannelsRouter } from './modules/contact-channels/routes.js';
 import { customerListsRouter } from './modules/customer-lists/routes.js';
@@ -33,6 +35,9 @@ export function createApp(opts: AppOptions = {}): Express {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: false, limit: '256kb' }));
 
+  // TwiML/webhooks live above /api/v1 because Twilio doesn't version with us.
+  app.use('/twiml', twimlRouter);
+
   const v1 = Router();
   v1.get('/health', (_req, res) => res.json({ status: 'ok' }));
   v1.use('/auth', authRouter);
@@ -42,9 +47,12 @@ export function createApp(opts: AppOptions = {}): Express {
   v1.use('/voice-profiles', voiceProfilesRouter);
   v1.use('/ai-providers', aiProvidersRouter);
   v1.use('/campaigns', campaignsRouter);
+  v1.use('/calls', callsRouter);
   app.use('/api/v1', v1);
 
-  app.use((req, _res, next) => next(new AppError('not_found', `Route not found: ${req.method} ${req.path}`, 404)));
+  app.use((req, _res, next) =>
+    next(new AppError('not_found', `Route not found: ${req.method} ${req.path}`, 404)),
+  );
   app.use(errorHandler);
 
   return app;

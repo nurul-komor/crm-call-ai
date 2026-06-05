@@ -8,10 +8,12 @@ import {
   helmetMiddleware,
   rateLimitMiddleware,
 } from './middleware/security.js';
+import { aiProvidersRouter } from './modules/ai-providers/routes.js';
 import { authRouter } from './modules/auth/routes.js';
 import { contactChannelsRouter } from './modules/contact-channels/routes.js';
 import { customerListsRouter } from './modules/customer-lists/routes.js';
 import { customersRouter } from './modules/customers/routes.js';
+import { voiceProfilesRouter } from './modules/voice-profiles/routes.js';
 
 export interface AppOptions {
   /** Disable rate limiting in tests. */
@@ -36,6 +38,8 @@ export function createApp(opts: AppOptions = {}): Express {
   v1.use('/customers', customersRouter);
   v1.use('/customer-lists', customerListsRouter);
   v1.use('/contact-channels', contactChannelsRouter);
+  v1.use('/voice-profiles', voiceProfilesRouter);
+  v1.use('/ai-providers', aiProvidersRouter);
   app.use('/api/v1', v1);
 
   app.use((req, _res, next) => next(new AppError('not_found', `Route not found: ${req.method} ${req.path}`, 404)));

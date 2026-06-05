@@ -6,7 +6,12 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 import { Call } from '../src/models/call.js';
-import { startMediaStreamServer } from '../src/ws/mediaStreamServer.js';
+import { CallSession } from '../src/session/CallSession.js';
+import {
+  setSessionBuilder,
+  resetSessionBuilder,
+  startMediaStreamServer,
+} from '../src/ws/mediaStreamServer.js';
 
 let mongod: MongoMemoryReplSet;
 let server: Server;
@@ -15,11 +20,26 @@ beforeAll(async () => {
   mongod = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await mongoose.connect(mongod.getUri());
   process.env.CALL_WORKER_PORT = '0';
+
+  // Inject a minimal fake session — keeps the WS open, swallows messages,
+  // and closes cleanly on 'stop'. The real builder needs CampaignRun +
+  // AiProvider + VoiceProfile records which we don't seed in this test.
+  setSessionBuilder(async ({ twilioWs }) => {
+    const session = {
+      handleMessage: async (msg: { event: string }) => {
+        if (msg.event === 'stop') twilioWs.close(1000);
+      },
+      hangup: async () => undefined,
+    } as unknown as CallSession;
+    return session;
+  });
+
   server = startMediaStreamServer();
   await new Promise<void>((resolve) => server.once('listening', () => resolve()));
 }, 60_000);
 
 afterAll(async () => {
+  resetSessionBuilder();
   await new Promise<void>((resolve) => server.close(() => resolve()));
   await mongoose.disconnect();
   await mongod.stop();

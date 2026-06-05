@@ -5,6 +5,7 @@ const FILLED = {
   REDIS_URL: 'redis://localhost:6379',
   CALL_WORKER_PORT: '0',
   TWILIO_MEDIA_STREAM_WS_HOST: 'localhost',
+  ENCRYPTION_MASTER_KEY: Buffer.alloc(32, 7).toString('base64'),
 } as const;
 
 for (const [k, v] of Object.entries(FILLED)) {

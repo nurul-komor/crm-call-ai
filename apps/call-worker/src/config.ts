@@ -10,6 +10,13 @@ const Schema = z.object({
   REDIS_URL: z.string().default('redis://localhost:6379'),
   BULLMQ_PREFIX: z.string().default('vf'),
 
+  /** AES-256 master key (base64) for decrypting per-tenant AI provider keys. */
+  ENCRYPTION_MASTER_KEY: z
+    .string()
+    .min(1)
+    .refine((s) => Buffer.from(s, 'base64').length === 32, '32-byte base64 key required'),
+  ELEVENLABS_API_KEY: z.string().default(''),
+
   CALL_WORKER_PORT: z.coerce.number().int().min(0).default(4100),
   CALL_WORKER_CONCURRENCY: z.coerce.number().int().positive().default(25),
   CALL_WORKER_MAX_CALL_SEC: z.coerce.number().int().positive().default(900),

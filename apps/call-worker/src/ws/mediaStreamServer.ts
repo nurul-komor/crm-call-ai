@@ -1,10 +1,10 @@
 /**
  * Raw `ws` server on CALL_WORKER_PORT/voice/:callJobId.
  *
- * Phase 1L-1N scaffold: accepts the upgrade, looks up the Call by callJobId,
- * logs the inbound 'start' event, then idles until the stream closes.
- * Phase 1O–1S will plug the CallSession state machine in here (VAD, STT,
- * LLM, TTS, barge-in, recording).
+ * On upgrade, validates the callJobId against the Call collection and
+ * instantiates a CallSession that owns the audio loop (VAD → STT → LLM →
+ * ElevenLabs streaming TTS, with barge-in). The default session-builder is
+ * sessionRegistry.buildSession; tests can swap in a fake via setSessionBuilder.
  */
 
 import { createServer, type IncomingMessage, type Server } from 'node:http';
@@ -14,12 +14,30 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { Call } from '../models/call.js';
 import { env } from '../config.js';
 import { log } from '../logger.js';
+import { CallSession } from '../session/CallSession.js';
+import { buildSession as defaultBuildSession } from '../session/sessionRegistry.js';
 
 interface MediaStreamMessage {
   event: 'connected' | 'start' | 'media' | 'stop' | 'mark';
   streamSid?: string;
   start?: { streamSid: string; callSid: string };
   media?: { payload: string; track?: 'inbound' | 'outbound'; timestamp?: string };
+}
+
+export type SessionBuilder = (opts: {
+  twilioWs: WebSocket;
+  callJobId: string;
+}) => Promise<CallSession | null>;
+
+let activeBuilder: SessionBuilder = defaultBuildSession;
+
+/** Tests override the builder (e.g. with stub providers). */
+export function setSessionBuilder(b: SessionBuilder): void {
+  activeBuilder = b;
+}
+
+export function resetSessionBuilder(): void {
+  activeBuilder = defaultBuildSession;
 }
 
 export function startMediaStreamServer(): Server {
@@ -49,7 +67,7 @@ export function startMediaStreamServer(): Server {
   wss.on('connection', (ws, req) => {
     const callJobId = extractCallJobId(req.url ?? '');
     log().info({ callJobId }, 'media stream connected');
-    bindCallSession(ws, callJobId);
+    void bind(ws, callJobId);
   });
 
   const port = env().CALL_WORKER_PORT;
@@ -87,30 +105,35 @@ function extractCallJobId(url: string): string {
   return match?.[1] ?? '';
 }
 
-function bindCallSession(ws: WebSocket, callJobId: string): void {
-  let mediaCount = 0;
+async function bind(ws: WebSocket, callJobId: string): Promise<void> {
+  let session: CallSession | null = null;
+  try {
+    session = await activeBuilder({ twilioWs: ws, callJobId });
+  } catch (err) {
+    log().error({ err, callJobId }, 'session build failed');
+  }
+  if (!session) {
+    log().warn({ callJobId }, 'no session built; closing');
+    try {
+      ws.close(1011);
+    } catch {
+      /* noop */
+    }
+    return;
+  }
+
+  const s = session;
   ws.on('message', (data) => {
     try {
       const msg = JSON.parse(data.toString()) as MediaStreamMessage;
-      if (msg.event === 'start') {
-        log().info(
-          { callJobId, streamSid: msg.start?.streamSid, callSid: msg.start?.callSid },
-          'media stream start',
-        );
-        // Phase 1O–1S: instantiate CallSession here and pipe inbound media to VAD/STT.
-      } else if (msg.event === 'media') {
-        mediaCount++;
-        if (mediaCount % 250 === 0) {
-          log().debug({ callJobId, mediaFrames: mediaCount }, 'media stream progress');
-        }
-      } else if (msg.event === 'stop') {
-        log().info({ callJobId, totalFrames: mediaCount }, 'media stream stop');
-        ws.close(1000);
-      }
+      void s.handleMessage(msg);
     } catch (err) {
       log().warn({ err, callJobId }, 'malformed media message');
     }
   });
-  ws.on('close', (code) => log().info({ callJobId, code }, 'media stream closed'));
+  ws.on('close', (code) => {
+    log().info({ callJobId, code }, 'media stream closed');
+    void s.hangup('twilio_close');
+  });
   ws.on('error', (err) => log().error({ err, callJobId }, 'media stream error'));
 }

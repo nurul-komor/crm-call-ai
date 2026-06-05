@@ -9,6 +9,9 @@ import {
   rateLimitMiddleware,
 } from './middleware/security.js';
 import { authRouter } from './modules/auth/routes.js';
+import { contactChannelsRouter } from './modules/contact-channels/routes.js';
+import { customerListsRouter } from './modules/customer-lists/routes.js';
+import { customersRouter } from './modules/customers/routes.js';
 
 export interface AppOptions {
   /** Disable rate limiting in tests. */
@@ -30,6 +33,9 @@ export function createApp(opts: AppOptions = {}): Express {
   const v1 = Router();
   v1.get('/health', (_req, res) => res.json({ status: 'ok' }));
   v1.use('/auth', authRouter);
+  v1.use('/customers', customersRouter);
+  v1.use('/customer-lists', customerListsRouter);
+  v1.use('/contact-channels', contactChannelsRouter);
   app.use('/api/v1', v1);
 
   app.use((req, _res, next) => next(new AppError('not_found', `Route not found: ${req.method} ${req.path}`, 404)));

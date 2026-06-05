@@ -104,66 +104,11 @@ export async function signup(input: SignupInput): Promise<AuthTokens & { user: P
   const complexity = validatePasswordComplexity(input.password);
   if (!complexity.ok) throw new AppError('bad_request', complexity.reason, 400);
 
-  const session = await mongoose.startSession();
   try {
-    let user: { _id: Types.ObjectId; companyId: Types.ObjectId; roleId: Types.ObjectId } | null =
-      null;
-    let publicUser: PublicUser | null = null;
-
-    await session.withTransaction(async () => {
-      const slug = await freeSlug(input.companyName);
-      const [company] = await CompanyModel.create([{ name: input.companyName, slug }], {
-        session,
-      });
-      if (!company) throw new AppError('internal_error', 'Failed to create company', 500);
-
-      await seedDefaultRolesForCompany(company._id, { session });
-      const adminRole = await RoleModel.findOne({
-        companyId: company._id,
-        name: 'company_admin',
-      }).session(session);
-      if (!adminRole) throw new AppError('internal_error', 'Default role missing', 500);
-
-      const existing = await UserModel.findOne({
-        companyId: company._id,
-        email: input.email,
-      }).session(session);
-      if (existing) throw new AppError('conflict', 'Email already registered', 409);
-
-      const passwordHash = await hashPassword(input.password);
-      const [created] = await UserModel.create(
-        [
-          {
-            companyId: company._id,
-            roleId: adminRole._id,
-            email: input.email,
-            passwordHash,
-            firstName: input.firstName,
-            lastName: input.lastName,
-            status: 'active',
-          },
-        ],
-        { session },
-      );
-      if (!created) throw new AppError('internal_error', 'Failed to create user', 500);
-
-      user = {
-        _id: created._id,
-        companyId: company._id,
-        roleId: adminRole._id,
-      };
-      publicUser = toPublicUser({
-        ...created.toObject(),
-        _id: created._id,
-      });
-    });
-
-    if (!user || !publicUser) throw new AppError('internal_error', 'Signup failed', 500);
-
+    const { user, publicUser } = await runSignupAtomic(input);
     const tokens = await issueTokens(user);
     return { ...tokens, user: publicUser };
   } catch (err) {
-    // Surface mongo duplicate-key as conflict (slug race etc.)
     if (
       err instanceof Error &&
       'code' in err &&
@@ -172,9 +117,109 @@ export async function signup(input: SignupInput): Promise<AuthTokens & { user: P
       throw new AppError('conflict', 'Duplicate value', 409);
     }
     throw err;
+  }
+}
+
+interface SignupResult {
+  user: { _id: Types.ObjectId; companyId: Types.ObjectId; roleId: Types.ObjectId };
+  publicUser: PublicUser;
+}
+
+/**
+ * Run the company + roles + user creates atomically when the Mongo deployment
+ * supports transactions (Atlas replica sets, mongodb-memory-server with
+ * `MongoMemoryReplSet`). On a standalone Mongo (`Transaction numbers are only
+ * allowed on a replica set member or mongos`), fall back to non-transactional
+ * creates and log a warning. The non-atomic path can leave orphan rows on
+ * mid-flight failure, but unique indexes on (companyId, email) and slug make
+ * a retry produce a clean conflict rather than a duplicate user.
+ */
+async function runSignupAtomic(input: SignupInput): Promise<SignupResult> {
+  const session = await mongoose.startSession();
+  try {
+    let result: SignupResult | null = null;
+    await session.withTransaction(async () => {
+      result = await doSignup(input, session);
+    });
+    if (!result) throw new AppError('internal_error', 'Signup failed', 500);
+    return result;
+  } catch (err) {
+    if (isNoTransactionSupportError(err)) {
+      // One-time warning per process (sticky via a module flag would be
+      // nicer, but logging every signup on standalone Mongo is fine for dev).
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[auth] Mongo deployment does not support transactions — running signup non-atomically. Use a replica set in production.',
+      );
+      return doSignup(input, null);
+    }
+    throw err;
   } finally {
     await session.endSession();
   }
+}
+
+function isNoTransactionSupportError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message;
+  return (
+    msg.includes('Transaction numbers') ||
+    msg.includes('Transactions are not supported') ||
+    msg.includes('replica set member or mongos')
+  );
+}
+
+async function doSignup(
+  input: SignupInput,
+  session: mongoose.ClientSession | null,
+): Promise<SignupResult> {
+  const slug = await freeSlug(input.companyName);
+
+  const [company] = await CompanyModel.create(
+    [{ name: input.companyName, slug }],
+    session ? { session } : {},
+  );
+  if (!company) throw new AppError('internal_error', 'Failed to create company', 500);
+
+  await seedDefaultRolesForCompany(company._id, session ? { session } : {});
+
+  const adminRoleQuery = RoleModel.findOne({
+    companyId: company._id,
+    name: 'company_admin',
+  });
+  if (session) adminRoleQuery.session(session);
+  const adminRole = await adminRoleQuery;
+  if (!adminRole) throw new AppError('internal_error', 'Default role missing', 500);
+
+  const existingQuery = UserModel.findOne({
+    companyId: company._id,
+    email: input.email,
+  });
+  if (session) existingQuery.session(session);
+  const existing = await existingQuery;
+  if (existing) throw new AppError('conflict', 'Email already registered', 409);
+
+  const passwordHash = await hashPassword(input.password);
+  const [created] = await UserModel.create(
+    [
+      {
+        companyId: company._id,
+        roleId: adminRole._id,
+        email: input.email,
+        passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        status: 'active',
+      },
+    ],
+    session ? { session } : {},
+  );
+  if (!created) throw new AppError('internal_error', 'Failed to create user', 500);
+
+  return {
+    user: { _id: created._id, companyId: company._id, roleId: adminRole._id },
+    publicUser: toPublicUser({ ...created.toObject(), _id: created._id }),
+  };
 }
 
 export async function login(input: LoginInput): Promise<AuthTokens & { user: PublicUser }> {

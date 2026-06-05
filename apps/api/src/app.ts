@@ -8,6 +8,7 @@ import {
   helmetMiddleware,
   rateLimitMiddleware,
 } from './middleware/security.js';
+import { authRouter } from './modules/auth/routes.js';
 
 export interface AppOptions {
   /** Disable rate limiting in tests. */
@@ -28,6 +29,7 @@ export function createApp(opts: AppOptions = {}): Express {
 
   const v1 = Router();
   v1.get('/health', (_req, res) => res.json({ status: 'ok' }));
+  v1.use('/auth', authRouter);
   app.use('/api/v1', v1);
 
   app.use((req, _res, next) => next(new AppError('not_found', `Route not found: ${req.method} ${req.path}`, 404)));

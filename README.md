@@ -40,7 +40,13 @@ corepack enable    # picks up packageManager (pnpm@9.0.0)
 pnpm install
 
 # 3. Local infra (mongo + redis + mailhog)
+#    - If you already run these on the host on standard ports (27017/6379/1025/8025),
+#      skip this step and use the host services directly. The default .env.example
+#      points at the host.
+#    - Otherwise:
 pnpm docker:up
+#      docker-compose remaps ports to 27018 / 6380 / 1026 / 8026 to avoid host
+#      collisions. Update MONGO_URI / REDIS_URL / SMTP_PORT in .env accordingly.
 
 # 4. Configure
 cp .env.example .env

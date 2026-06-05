@@ -1,0 +1,51 @@
+# Optional local-infra stack. If you already have host services on 27017/6379/1025/8025
+# (common on dev machines), you can skip this and point .env at localhost directly.
+# Otherwise run `pnpm docker:up`. Ports are remapped to avoid collisions with host services.
+name: voiceflow
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: voiceflow-mongo
+    restart: unless-stopped
+    ports:
+      - '27018:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: app
+      MONGO_INITDB_ROOT_PASSWORD: app
+      MONGO_INITDB_DATABASE: ai-call
+    volumes:
+      - mongo_data:/data/db
+      - ./services/docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: voiceflow-redis
+    restart: unless-stopped
+    ports:
+      - '6380:6379'
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: voiceflow-mailhog
+    restart: unless-stopped
+    ports:
+      - '1026:1025'   # SMTP
+      - '8026:8025'   # Web UI
+
+volumes:
+  mongo_data:
+  redis_data:

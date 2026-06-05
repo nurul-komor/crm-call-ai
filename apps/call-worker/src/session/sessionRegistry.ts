@@ -1,17 +1,31 @@
+import { Queue } from 'bullmq';
 import { Types } from 'mongoose';
 
+import { QUEUE_NAMES, type PostCallJob } from '@voiceflow/shared-types';
 import { decrypt } from '@voiceflow/shared-utils';
 
 import { env } from '../config.js';
+import { publishCallEvent } from '../events.js';
 import { log } from '../logger.js';
 import { Call } from '../models/call.js';
 import { OpenAIProvider } from '../providers/OpenAIProvider.js';
+import { redis } from '../redis.js';
 import { OpenAiSttClient } from '../stt/openAiSttClient.js';
 import { ElevenLabsTtsClient } from '../tts/elevenLabsClient.js';
 
 import { CallSession } from './CallSession.js';
 
 import type { WebSocket as WsWebSocket } from 'ws';
+
+let _postCallQueue: Queue<PostCallJob> | undefined;
+function postCallQueue(): Queue<PostCallJob> {
+  if (_postCallQueue) return _postCallQueue;
+  _postCallQueue = new Queue<PostCallJob>(QUEUE_NAMES.postCall, {
+    prefix: env().BULLMQ_PREFIX,
+    connection: redis(),
+  });
+  return _postCallQueue;
+}
 
 /**
  * Build a CallSession bound to the given Twilio WS. Looks up:
@@ -79,14 +93,43 @@ export async function buildSession(opts: {
       ).catch((err) =>
         log().warn({ err, callJobId: opts.callJobId }, 'transcript write failed'),
       );
-    },
-    onEnd: (reason) => {
-      Call.updateOne(
-        { callJobId: opts.callJobId },
-        { $set: { endedAt: new Date(), status: reason === 'answering_machine' ? 'answering_machine' : 'completed' } },
-      ).catch((err) =>
-        log().warn({ err, callJobId: opts.callJobId }, 'end update failed'),
+      // Real-time event for the dashboard
+      publishCallEvent(String(call.companyId), {
+        type: 'call.turn',
+        callId: String(call._id),
+        callJobId: opts.callJobId,
+        role: turn.role,
+        text: turn.text,
+        at: turn.at.toISOString(),
+      }).catch((err) =>
+        log().warn({ err, callJobId: opts.callJobId }, 'turn event publish failed'),
       );
+    },
+    onEnd: async (reason) => {
+      try {
+        const status =
+          reason === 'answering_machine' ? 'answering_machine' : 'completed';
+        await Call.updateOne(
+          { callJobId: opts.callJobId },
+          { $set: { endedAt: new Date(), status } },
+        );
+        await publishCallEvent(String(call.companyId), {
+          type: 'call.ended',
+          callId: String(call._id),
+          callJobId: opts.callJobId,
+          status,
+        });
+        // Enqueue post-call processing (summary, extraction, lead score).
+        if (reason !== 'answering_machine') {
+          await postCallQueue().add(
+            QUEUE_NAMES.postCall,
+            { callId: String(call._id), companyId: String(call.companyId) },
+            { jobId: String(call._id) },
+          );
+        }
+      } catch (err) {
+        log().warn({ err, callJobId: opts.callJobId }, 'end handler failed');
+      }
     },
   });
 }

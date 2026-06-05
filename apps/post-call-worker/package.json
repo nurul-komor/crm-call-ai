@@ -1,0 +1,36 @@
+{
+  "name": "@voiceflow/post-call-worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@voiceflow/shared-types": "workspace:*",
+    "@voiceflow/shared-utils": "workspace:*",
+    "bullmq": "5.12.0",
+    "expr-eval": "2.0.2",
+    "ioredis": "5.4.1",
+    "mongoose": "8.5.1",
+    "openai": "4.56.0",
+    "pino": "9.3.1",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "20.12.7",
+    "@voiceflow/shared-config": "workspace:*",
+    "mongodb-memory-server": "10.0.0",
+    "pino-pretty": "11.2.2",
+    "tsx": "4.16.2",
+    "typescript": "5.4.5",
+    "vitest": "1.6.0"
+  }
+}

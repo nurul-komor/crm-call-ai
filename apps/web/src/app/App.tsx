@@ -8,6 +8,7 @@ import { CampaignBuilderPage } from '@/pages/CampaignBuilder';
 import { CampaignsPage } from '@/pages/Campaigns';
 import { CustomersPage } from '@/pages/Customers';
 import { DashboardLayout } from '@/pages/DashboardLayout';
+import { LandingPage } from '@/pages/Landing';
 import { LiveMonitorPage } from '@/pages/LiveMonitor';
 import { LoginPage } from '@/pages/Login';
 import { SignupPage } from '@/pages/Signup';
@@ -34,11 +35,11 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
-              <Route path="/" element={<Navigate to="/customers" replace />} />
               <Route path="/customers" element={<CustomersPage />} />
               <Route path="/campaigns" element={<CampaignsPage />} />
               <Route path="/campaigns/new" element={<CampaignBuilderPage />} />

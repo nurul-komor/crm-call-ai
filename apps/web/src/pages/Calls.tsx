@@ -1,7 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
+import { ArrowUpRight, Headphones } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { Card, CardContent } from '@/components/ui/Card';
+import { Chip } from '@/components/ui/Chip';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { getJson } from '@/lib/api';
 
 interface Call {
@@ -20,66 +24,95 @@ interface CallsResponse {
   nextCursor: string | null;
 }
 
-const QUAL_TONE: Record<string, string> = {
-  cold: 'bg-blue-100 text-blue-800',
-  warm: 'bg-yellow-100 text-yellow-800',
-  hot: 'bg-red-100 text-red-800',
+const QUAL_TONE: Record<string, 'accent' | 'warning' | 'danger'> = {
+  cold: 'accent',
+  warm: 'warning',
+  hot: 'danger',
 };
+
+const STATUS_TONE: Record<string, 'neutral' | 'accent' | 'success' | 'warning' | 'danger'> = {
+  completed: 'success',
+  in_progress: 'accent',
+  failed: 'danger',
+  no_answer: 'warning',
+  busy: 'warning',
+  queued: 'neutral',
+};
+
+function fmtDuration(s?: number) {
+  if (!s) return '—';
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return m > 0 ? `${m}m ${r}s` : `${r}s`;
+}
 
 export function CallsPage() {
   const list = useQuery({ queryKey: ['calls'], queryFn: () => getJson<CallsResponse>('calls') });
+  const items = list.data?.items ?? [];
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Calls</h1>
+      <PageHeader
+        title="Calls"
+        description="Every outbound conversation, with summary, lead score and transcript."
+      />
+
       <Card>
         <CardContent className="p-0">
           {list.isLoading ? (
-            <p className="p-6 text-muted-foreground">Loading…</p>
-          ) : !list.data?.items.length ? (
-            <p className="p-6 text-muted-foreground">No calls yet.</p>
+            <p className="p-10 text-center text-text-tertiary">Loading…</p>
+          ) : items.length === 0 ? (
+            <EmptyState
+              icon={Headphones}
+              title="No calls yet"
+              description="As soon as a campaign dispatches its first call, it'll appear here."
+            />
           ) : (
-            <table className="w-full text-sm">
-              <thead className="border-b">
-                <tr className="text-left">
-                  <th className="px-6 py-3 font-medium">Started</th>
-                  <th className="px-6 py-3 font-medium">Status</th>
-                  <th className="px-6 py-3 font-medium">Duration</th>
-                  <th className="px-6 py-3 font-medium">Lead</th>
-                  <th className="px-6 py-3 font-medium">Summary</th>
-                  <th className="px-6 py-3"></th>
+            <table className="w-full">
+              <thead>
+                <tr className="text-2xs uppercase tracking-wider text-text-tertiary border-b border-border">
+                  <th className="text-left font-semibold px-5 py-3">Started</th>
+                  <th className="text-left font-semibold px-2 py-3">Status</th>
+                  <th className="text-left font-semibold px-2 py-3">Duration</th>
+                  <th className="text-left font-semibold px-2 py-3">Lead</th>
+                  <th className="text-left font-semibold px-2 py-3">Summary</th>
+                  <th className="px-5 py-3 w-12"></th>
                 </tr>
               </thead>
               <tbody>
-                {list.data.items.map((c) => (
-                  <tr key={c._id} className="border-b last:border-b-0">
-                    <td className="px-6 py-3 text-muted-foreground">
+                {items.map((c) => (
+                  <tr
+                    key={c._id}
+                    className="row-hover border-b border-border last:border-b-0"
+                  >
+                    <td className="px-5 py-4 text-text-secondary text-sm whitespace-nowrap">
                       {new Date(c.createdAt).toLocaleString()}
                     </td>
-                    <td className="px-6 py-3">{c.status}</td>
-                    <td className="px-6 py-3">
-                      {c.durationSec ? `${c.durationSec}s` : '—'}
+                    <td className="px-2 py-4">
+                      <Chip tone={STATUS_TONE[c.status] ?? 'neutral'}>{c.status}</Chip>
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-2 py-4 font-mono text-sm tabular-nums">
+                      {fmtDuration(c.durationSec)}
+                    </td>
+                    <td className="px-2 py-4">
                       {c.leadQualification ? (
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${QUAL_TONE[c.leadQualification]}`}
-                        >
+                        <Chip tone={QUAL_TONE[c.leadQualification]}>
                           {c.leadQualification} · {c.leadScore}
-                        </span>
+                        </Chip>
                       ) : (
-                        '—'
+                        <span className="text-text-tertiary text-sm">—</span>
                       )}
                     </td>
-                    <td className="px-6 py-3 text-muted-foreground line-clamp-2 max-w-md">
-                      {c.summary ?? '—'}
+                    <td className="px-2 py-4 text-text-secondary text-sm line-clamp-2 max-w-xl">
+                      {c.summary ?? <span className="text-text-tertiary">—</span>}
                     </td>
-                    <td className="px-6 py-3 text-right">
+                    <td className="px-5 py-4 text-right">
                       <Link
                         to={`/calls/${c._id}`}
-                        className="text-sm font-medium hover:underline"
+                        className="inline-flex items-center gap-1 text-sm font-semibold text-accent-light hover:text-accent"
                       >
-                        Details →
+                        Details
+                        <ArrowUpRight size={12} />
                       </Link>
                     </td>
                   </tr>

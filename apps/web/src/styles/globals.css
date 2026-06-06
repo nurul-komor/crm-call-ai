@@ -4,52 +4,211 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --primary: 222 47% 11%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    /* Dark theme is the canonical product look (per design handoff) */
+    --bg: 240 6% 6%;              /* #09090B */
+    --surface: 240 5% 7%;          /* #111113 */
+    --surface-2: 240 5% 10%;       /* #18181B */
+    --border: 240 4% 16%;          /* #27272A */
+    --border-light: 240 4% 26%;    /* #3F3F46 */
+    --text: 0 0% 98%;              /* #FAFAFA */
+    --text-secondary: 240 5% 65%;  /* #A1A1AA */
+    --text-tertiary: 240 5% 45%;   /* #71717A */
+
+    --accent: 221 83% 53%;         /* #2563EB */
+    --accent-light: 217 91% 60%;   /* #3B82F6 */
+    --accent-dark: 224 76% 48%;    /* #1D4ED8 */
+    --accent-glow: 221 83% 53% / 0.18;
+
+    --success: 142 71% 45%;        /* #22C55E */
+    --warning: 38 92% 50%;         /* #F59E0B */
+    --danger: 0 84% 60%;           /* #EF4444 */
+
+    --row-hover: 0 0% 100% / 0.025;
+    --hover-overlay: 0 0% 100% / 0.04;
+    --hover-overlay-strong: 0 0% 100% / 0.06;
+
+    /* Shadcn-compatible aliases used by primitive components */
+    --background: 240 6% 6%;
+    --foreground: 0 0% 98%;
+    --muted: 240 5% 10%;
+    --muted-foreground: 240 5% 65%;
+    --card: 240 5% 7%;
+    --card-foreground: 0 0% 98%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+    --accent-bg: 221 83% 53%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 222 47% 11%;
-    --radius: 0.5rem;
+    --destructive-foreground: 0 0% 98%;
+    --input: 240 4% 16%;
+    --ring: 221 83% 53%;
+
+    --radius: 16px;
+    --radius-sm: 12px;
+    --radius-lg: 24px;
+
+    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.2);
+    --shadow-lift: 0 12px 32px rgba(0, 0, 0, 0.3);
+    --shadow-glass:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 8px 32px rgba(0, 0, 0, 0.1);
   }
 
-  .dark {
-    --background: 222 47% 8%;
-    --foreground: 210 40% 98%;
-    --muted: 217 32% 17%;
-    --muted-foreground: 215 20% 65%;
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 32% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --accent: 217 32% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 32% 17%;
-    --input: 217 32% 17%;
-    --ring: 212 27% 84%;
+  .light {
+    --bg: 0 0% 98%;
+    --surface: 0 0% 100%;
+    --surface-2: 240 5% 96%;
+    --border: 240 6% 90%;
+    --border-light: 240 5% 84%;
+    --text: 240 6% 6%;
+    --text-secondary: 240 4% 36%;
+    --text-tertiary: 240 4% 46%;
+    --row-hover: 0 0% 0% / 0.025;
+    --hover-overlay: 0 0% 0% / 0.04;
+    --hover-overlay-strong: 0 0% 0% / 0.06;
+
+    --background: 0 0% 98%;
+    --foreground: 240 6% 6%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 36%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 6% 6%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 6%;
+    --input: 240 6% 90%;
+    --success: 142 71% 30%;
+    --warning: 30 92% 38%;
+    --danger: 0 70% 42%;
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.04);
+    --shadow-lift: 0 8px 24px rgba(0, 0, 0, 0.08);
   }
 
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
+
+  html,
   body {
-    @apply bg-background text-foreground;
-    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-      'Helvetica Neue', Arial;
+    background-color: hsl(var(--bg));
+    color: hsl(var(--text));
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+      'Segoe UI', Roboto, sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: hsl(var(--accent) / 0.4);
+    color: hsl(var(--text));
+  }
+}
+
+@layer components {
+  .dash-card {
+    background-color: hsl(var(--surface));
+    border: 1px solid hsl(var(--border));
+    border-radius: 14px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .glass-surface {
+    background-color: hsl(var(--surface) / 0.7);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    box-shadow: var(--shadow-glass);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border-radius: 100px;
+    border: 1px solid currentColor;
+    line-height: 1;
+  }
+
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    padding: 2px 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: hsl(var(--text-secondary));
+    background-color: hsl(var(--surface-2));
+    border: 1px solid hsl(var(--border));
+    border-radius: 4px;
+  }
+
+  .row-hover {
+    transition: background-color 120ms ease;
+  }
+  .row-hover:hover {
+    background-color: hsl(var(--row-hover));
+  }
+
+  .live-dot {
+    position: relative;
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: hsl(var(--success));
+  }
+  .live-dot::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1px solid hsl(var(--success));
+    opacity: 0.6;
+    animation: livePulse 1.6s ease-out infinite;
+  }
+
+  .nav-section-label {
+    padding: 14px 12px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: hsl(var(--text-tertiary));
+  }
+}
+
+@keyframes livePulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes waveBar {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
   }
 }

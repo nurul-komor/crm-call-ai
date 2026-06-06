@@ -1,10 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Cpu, Mic, Phone, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Chip } from '@/components/ui/Chip';
+import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Select } from '@/components/ui/Select';
 import { del, getJson, postJson } from '@/lib/api';
 
 interface ContactChannel {
@@ -31,11 +36,16 @@ interface AiProvider {
 
 export function SettingsPage() {
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-bold">Settings</h1>
-      <ChannelsSection />
-      <VoiceProfilesSection />
-      <AiProvidersSection />
+    <div className="space-y-6">
+      <PageHeader
+        title="Settings"
+        description="Manage contact channels, voice profiles, and AI provider credentials."
+      />
+      <div className="space-y-6">
+        <ChannelsSection />
+        <VoiceProfilesSection />
+        <AiProvidersSection />
+      </div>
     </div>
   );
 }
@@ -62,13 +72,19 @@ function ChannelsSection() {
   const [err, setErr] = useState<string | null>(null);
 
   return (
-    <Card>
+    <Card id="channels">
       <CardHeader>
-        <CardTitle className="text-lg">Contact channels</CardTitle>
+        <CardTitle>
+          <span className="inline-flex items-center gap-2">
+            <Phone size={14} className="text-accent-light" />
+            Contact channels
+          </span>
+        </CardTitle>
+        <span className="text-xs text-text-tertiary">{list.data?.length ?? 0} configured</span>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4">
         <form
-          className="grid grid-cols-1 md:grid-cols-4 gap-3"
+          className="grid grid-cols-1 md:grid-cols-[120px_140px_1fr_auto] gap-3 items-end"
           onSubmit={handleSubmit(async (v) => {
             setErr(null);
             try {
@@ -79,49 +95,62 @@ function ChannelsSection() {
             }
           })}
         >
-          <select
-            className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-            {...register('type')}
-            defaultValue="phone"
-          >
-            <option value="phone">phone</option>
-            <option value="whatsapp">whatsapp</option>
-          </select>
-          <select
-            className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-            {...register('provider')}
-            defaultValue="twilio"
-          >
-            <option value="twilio">twilio</option>
-            <option value="meta">meta</option>
-            <option value="vonage">vonage</option>
-            <option value="plivo">plivo</option>
-          </select>
-          <Input placeholder="+14155551234" {...register('number', { required: true })} />
-          <Button type="submit" disabled={create.isPending}>
-            Add channel
+          <Field label="Type">
+            <Select {...register('type')} defaultValue="phone">
+              <option value="phone">phone</option>
+              <option value="whatsapp">whatsapp</option>
+            </Select>
+          </Field>
+          <Field label="Provider">
+            <Select {...register('provider')} defaultValue="twilio">
+              <option value="twilio">twilio</option>
+              <option value="meta">meta</option>
+              <option value="vonage">vonage</option>
+              <option value="plivo">plivo</option>
+            </Select>
+          </Field>
+          <Field label="Number">
+            <Input placeholder="+14155551234" {...register('number', { required: true })} />
+          </Field>
+          <Button type="submit" disabled={create.isPending} className="gap-2">
+            <Plus size={14} />
+            Add
           </Button>
-          {err && <p className="md:col-span-4 text-sm text-destructive">{err}</p>}
+          {err && <p className="md:col-span-4 text-xs text-danger">{err}</p>}
         </form>
-        <table className="w-full text-sm">
-          <tbody>
-            {list.data?.map((c) => (
-              <tr key={c._id} className="border-b last:border-b-0">
-                <td className="py-2">
-                  <span className="font-medium">{c.number}</span>{' '}
-                  <span className="text-muted-foreground">
-                    ({c.type} · {c.provider})
+
+        {list.data && list.data.length > 0 && (
+          <ul className="divide-y divide-border border border-border rounded-md overflow-hidden">
+            {list.data.map((c) => (
+              <li
+                key={c._id}
+                className="flex items-center justify-between gap-4 px-4 py-3 row-hover"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="h-7 w-7 rounded-md bg-surface-2 border border-border flex items-center justify-center text-text-tertiary">
+                    <Phone size={12} />
                   </span>
-                </td>
-                <td className="py-2 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => remove.mutate(c._id)}>
-                    Delete
-                  </Button>
-                </td>
-              </tr>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-text font-mono text-sm truncate">
+                      {c.number}
+                    </div>
+                    <div className="text-2xs text-text-tertiary uppercase tracking-wider">
+                      {c.type} · {c.provider}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:text-danger"
+                  onClick={() => remove.mutate(c._id)}
+                >
+                  <Trash2 size={14} />
+                </Button>
+              </li>
             ))}
-          </tbody>
-        </table>
+          </ul>
+        )}
       </CardContent>
     </Card>
   );
@@ -149,13 +178,19 @@ function VoiceProfilesSection() {
   const [err, setErr] = useState<string | null>(null);
 
   return (
-    <Card>
+    <Card id="voice">
       <CardHeader>
-        <CardTitle className="text-lg">Voice profiles (ElevenLabs)</CardTitle>
+        <CardTitle>
+          <span className="inline-flex items-center gap-2">
+            <Mic size={14} className="text-accent-light" />
+            Voice profiles
+          </span>
+        </CardTitle>
+        <span className="text-xs text-text-tertiary">ElevenLabs</span>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4">
         <form
-          className="grid grid-cols-1 md:grid-cols-4 gap-3"
+          className="grid grid-cols-1 md:grid-cols-[1.2fr_1.4fr_140px_auto] gap-3 items-end"
           onSubmit={handleSubmit(async (v) => {
             setErr(null);
             try {
@@ -166,40 +201,59 @@ function VoiceProfilesSection() {
             }
           })}
         >
-          <Input placeholder="Display name" {...register('name', { required: true })} />
-          <Input placeholder="ElevenLabs voiceId" {...register('voiceId', { required: true })} />
-          <select
-            className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-            {...register('gender')}
-            defaultValue=""
-          >
-            <option value="">— gender —</option>
-            <option value="female">female</option>
-            <option value="male">male</option>
-            <option value="neutral">neutral</option>
-          </select>
-          <Button type="submit" disabled={create.isPending}>
-            Add voice
+          <Field label="Display name">
+            <Input placeholder="Sofia · Energetic" {...register('name', { required: true })} />
+          </Field>
+          <Field label="ElevenLabs voice ID">
+            <Input
+              placeholder="EXAVITQu4vr4xnSDxMaL"
+              {...register('voiceId', { required: true })}
+            />
+          </Field>
+          <Field label="Gender">
+            <Select {...register('gender')} defaultValue="">
+              <option value="">—</option>
+              <option value="female">female</option>
+              <option value="male">male</option>
+              <option value="neutral">neutral</option>
+            </Select>
+          </Field>
+          <Button type="submit" disabled={create.isPending} className="gap-2">
+            <Plus size={14} />
+            Add
           </Button>
-          {err && <p className="md:col-span-4 text-sm text-destructive">{err}</p>}
+          {err && <p className="md:col-span-4 text-xs text-danger">{err}</p>}
         </form>
-        <table className="w-full text-sm">
-          <tbody>
-            {list.data?.map((v) => (
-              <tr key={v._id} className="border-b last:border-b-0">
-                <td className="py-2">
-                  <span className="font-medium">{v.name}</span>{' '}
-                  <span className="text-muted-foreground">({v.voiceId})</span>
-                </td>
-                <td className="py-2 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => remove.mutate(v._id)}>
-                    Delete
-                  </Button>
-                </td>
-              </tr>
+
+        {list.data && list.data.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {list.data.map((v) => (
+              <div
+                key={v._id}
+                className="relative overflow-hidden rounded-md border border-border bg-surface-2 px-4 py-3 flex items-center justify-between gap-3"
+              >
+                <div
+                  className="absolute -top-4 -right-4 h-16 w-16 rounded-full opacity-40 blur-2xl"
+                  style={{ background: 'hsl(var(--accent) / 0.5)' }}
+                />
+                <div className="relative min-w-0">
+                  <div className="font-semibold text-text truncate">{v.name}</div>
+                  <div className="text-2xs text-text-tertiary font-mono truncate">
+                    {v.voiceId} · {v.gender ?? 'unspecified'}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative hover:text-danger"
+                  onClick={() => remove.mutate(v._id)}
+                >
+                  <Trash2 size={14} />
+                </Button>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -228,13 +282,19 @@ function AiProvidersSection() {
   const [err, setErr] = useState<string | null>(null);
 
   return (
-    <Card>
+    <Card id="providers">
       <CardHeader>
-        <CardTitle className="text-lg">AI providers</CardTitle>
+        <CardTitle>
+          <span className="inline-flex items-center gap-2">
+            <Cpu size={14} className="text-accent-light" />
+            AI providers
+          </span>
+        </CardTitle>
+        <span className="text-xs text-text-tertiary">Bring-your-own-key</span>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4">
         <form
-          className="grid grid-cols-1 md:grid-cols-4 gap-3"
+          className="grid grid-cols-1 md:grid-cols-[140px_1fr_1fr_auto] gap-3 items-end"
           onSubmit={handleSubmit(async (v) => {
             setErr(null);
             try {
@@ -245,47 +305,65 @@ function AiProvidersSection() {
             }
           })}
         >
-          <select
-            className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-            {...register('provider')}
-            defaultValue="openai"
-          >
-            <option value="openai">openai</option>
-            <option value="claude">claude</option>
-            <option value="gemini">gemini</option>
-            <option value="openrouter">openrouter</option>
-          </select>
-          <Input placeholder="model (e.g. gpt-4o-mini)" {...register('model', { required: true })} />
-          <Input
-            type="password"
-            placeholder="API key"
-            autoComplete="off"
-            {...register('apiKey', { required: true })}
-          />
-          <Button type="submit" disabled={create.isPending}>
-            Add provider
+          <Field label="Provider">
+            <Select {...register('provider')} defaultValue="openai">
+              <option value="openai">openai</option>
+              <option value="claude">claude</option>
+              <option value="gemini">gemini</option>
+              <option value="openrouter">openrouter</option>
+            </Select>
+          </Field>
+          <Field label="Model">
+            <Input placeholder="gpt-4o-mini" {...register('model', { required: true })} />
+          </Field>
+          <Field label="API key">
+            <Input
+              type="password"
+              placeholder="sk-…"
+              autoComplete="off"
+              {...register('apiKey', { required: true })}
+            />
+          </Field>
+          <Button type="submit" disabled={create.isPending} className="gap-2">
+            <Plus size={14} />
+            Add
           </Button>
-          {err && <p className="md:col-span-4 text-sm text-destructive">{err}</p>}
+          {err && <p className="md:col-span-4 text-xs text-danger">{err}</p>}
         </form>
-        <table className="w-full text-sm">
-          <tbody>
-            {list.data?.map((p) => (
-              <tr key={p.id} className="border-b last:border-b-0">
-                <td className="py-2">
-                  <span className="font-medium">{p.provider}</span>{' '}
-                  <span className="text-muted-foreground">
-                    ({p.model} · {p.keyHint})
-                  </span>
-                </td>
-                <td className="py-2 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => remove.mutate(p.id)}>
-                    Delete
+
+        {list.data && list.data.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {list.data.map((p) => (
+              <div
+                key={p.id}
+                className="rounded-md border border-border bg-surface-2 px-4 py-3.5 flex items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-9 w-9 rounded-md bg-surface border border-border flex items-center justify-center text-text-secondary font-bold uppercase text-xs">
+                    {p.provider.slice(0, 2)}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-text capitalize">{p.provider}</div>
+                    <div className="text-2xs text-text-tertiary font-mono truncate">
+                      {p.model} · {p.keyHint}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Chip tone="success" dot>connected</Chip>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hover:text-danger"
+                    onClick={() => remove.mutate(p.id)}
+                  >
+                    <Trash2 size={14} />
                   </Button>
-                </td>
-              </tr>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

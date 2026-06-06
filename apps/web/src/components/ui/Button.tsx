@@ -2,8 +2,8 @@ import { forwardRef, type ButtonHTMLAttributes } from 'react';
 
 import { cn } from '@/lib/cn';
 
-type Variant = 'default' | 'outline' | 'ghost' | 'destructive';
-type Size = 'sm' | 'md' | 'lg';
+type Variant = 'default' | 'outline' | 'ghost' | 'destructive' | 'secondary';
+type Size = 'sm' | 'md' | 'lg' | 'icon';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
@@ -11,16 +11,21 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<Variant, string> = {
-  default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-  outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-  ghost: 'hover:bg-accent hover:text-accent-foreground',
-  destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+  default:
+    'bg-accent text-white border border-transparent hover:bg-accent-dark hover:shadow-accent-glow',
+  outline:
+    'border border-border bg-transparent text-text hover:bg-[hsl(var(--hover-overlay-strong))] hover:border-border-light',
+  secondary:
+    'border border-border bg-surface-2 text-text hover:bg-[hsl(var(--hover-overlay-strong))]',
+  ghost: 'border border-transparent text-text-secondary hover:bg-[hsl(var(--hover-overlay))] hover:text-text',
+  destructive: 'bg-danger text-white border border-transparent hover:bg-danger/90',
 };
 
 const sizes: Record<Size, string> = {
-  sm: 'h-8 px-3 text-sm',
-  md: 'h-10 px-4',
-  lg: 'h-12 px-6 text-base',
+  sm: 'h-8 px-3 text-xs gap-1.5',
+  md: 'h-9 px-4 text-base gap-2',
+  lg: 'h-11 px-6 text-md gap-2',
+  icon: 'h-9 w-9 p-0',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -28,7 +33,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        'inline-flex items-center justify-center rounded-md font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+        'inline-flex items-center justify-center rounded-md font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:pointer-events-none disabled:opacity-50',
         variants[variant],
         sizes[size],
         className,

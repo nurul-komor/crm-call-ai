@@ -1,8 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Bot, Download, User } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Chip } from '@/components/ui/Chip';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { cn } from '@/lib/cn';
 import { getJson } from '@/lib/api';
 
 interface CallDetail {
@@ -22,6 +26,26 @@ interface CallDetail {
   leadQualification?: string;
 }
 
+const STATUS_TONE: Record<string, 'neutral' | 'accent' | 'success' | 'warning' | 'danger'> = {
+  completed: 'success',
+  in_progress: 'accent',
+  failed: 'danger',
+  no_answer: 'warning',
+};
+
+const QUAL_TONE: Record<string, 'accent' | 'warning' | 'danger'> = {
+  cold: 'accent',
+  warm: 'warning',
+  hot: 'danger',
+};
+
+function fmtDuration(s?: number) {
+  if (!s) return '—';
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return m > 0 ? `${m}m ${r}s` : `${r}s`;
+}
+
 export function CallDetailPage() {
   const { id } = useParams();
   const call = useQuery({
@@ -31,90 +55,141 @@ export function CallDetailPage() {
     refetchInterval: 5000,
   });
 
-  if (call.isLoading) return <p className="text-muted-foreground">Loading…</p>;
-  if (!call.data) return <p className="text-destructive">Call not found</p>;
+  if (call.isLoading) {
+    return <p className="text-text-tertiary">Loading…</p>;
+  }
+  if (!call.data) {
+    return <p className="text-danger">Call not found</p>;
+  }
   const c = call.data;
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Call detail</h1>
-          <p className="font-mono text-sm text-muted-foreground">{c.callJobId}</p>
-        </div>
-        <Link to="/calls">
-          <Button variant="outline">← Back</Button>
-        </Link>
-      </header>
+      <PageHeader
+        title="Call detail"
+        description={<span className="font-mono text-sm text-text-tertiary">{c.callJobId}</span>}
+        actions={
+          <Link to="/calls">
+            <Button variant="outline" className="gap-2">
+              <ArrowLeft size={14} />
+              Back to calls
+            </Button>
+          </Link>
+        }
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Transcript</CardTitle>
+              <CardTitle>Transcript</CardTitle>
+              <Chip tone={STATUS_TONE[c.status] ?? 'neutral'} dot pulse={c.status === 'in_progress'}>
+                {c.status}
+              </Chip>
             </CardHeader>
-            <CardContent className="space-y-2 max-h-[60vh] overflow-y-auto">
+            <CardContent className="max-h-[60vh] overflow-y-auto p-0">
               {!c.transcript?.length ? (
-                <p className="text-muted-foreground">No transcript yet.</p>
+                <p className="p-6 text-text-tertiary text-sm">No transcript yet.</p>
               ) : (
-                c.transcript.map((t, i) => (
-                  <div key={i} className="text-sm">
-                    <span
-                      className={
-                        t.role === 'agent'
-                          ? 'text-blue-700 font-medium'
-                          : 'text-green-700 font-medium'
-                      }
-                    >
-                      {t.role}:
-                    </span>{' '}
-                    {t.text}
-                  </div>
-                ))
+                <ul className="divide-y divide-border">
+                  {c.transcript.map((t, i) => {
+                    const isAgent = t.role === 'agent';
+                    return (
+                      <li
+                        key={i}
+                        className={cn(
+                          'flex gap-3 px-5 py-3.5',
+                          isAgent ? 'flex-row' : 'flex-row-reverse text-right',
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'h-7 w-7 rounded-md flex items-center justify-center shrink-0',
+                            isAgent
+                              ? 'bg-accent/15 text-accent-light'
+                              : 'bg-success/15 text-success',
+                          )}
+                        >
+                          {isAgent ? <Bot size={13} /> : <User size={13} />}
+                        </div>
+                        <div className={cn('flex-1', !isAgent && 'flex flex-col items-end')}>
+                          <div className="text-2xs uppercase tracking-wider text-text-tertiary font-semibold">
+                            {isAgent ? 'AI' : 'Customer'}
+                          </div>
+                          <p className="text-base text-text mt-0.5 max-w-prose">{t.text}</p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </CardContent>
           </Card>
+
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Summary</CardTitle>
+              <CardTitle>Summary</CardTitle>
             </CardHeader>
             <CardContent>
               {c.summary ? (
-                <p className="text-sm">{c.summary}</p>
+                <p className="text-base text-text leading-relaxed">{c.summary}</p>
               ) : (
-                <p className="text-sm text-muted-foreground">Pending post-call processing.</p>
+                <p className="text-sm text-text-tertiary">Pending post-call processing.</p>
               )}
             </CardContent>
           </Card>
         </div>
+
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Outcome</CardTitle>
+              <CardTitle>Outcome</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <Row k="Status" v={c.status} />
-              <Row k="Duration" v={c.durationSec ? `${c.durationSec}s` : '—'} />
+            <CardContent className="space-y-3">
+              <Row k="Status" v={<Chip tone={STATUS_TONE[c.status] ?? 'neutral'}>{c.status}</Chip>} />
+              <Row k="Duration" v={fmtDuration(c.durationSec)} mono />
               <Row k="Sentiment" v={c.sentiment ?? '—'} />
               <Row
                 k="Lead"
                 v={
-                  c.leadQualification ? `${c.leadQualification} · ${c.leadScore}` : '—'
+                  c.leadQualification ? (
+                    <Chip tone={QUAL_TONE[c.leadQualification] ?? 'accent'}>
+                      {c.leadQualification} · {c.leadScore}
+                    </Chip>
+                  ) : (
+                    '—'
+                  )
                 }
               />
               {c.recordingUrl && (
-                <Row k="Recording" v={<a href={c.recordingUrl}>Play</a>} />
+                <Row
+                  k="Recording"
+                  v={
+                    <a
+                      href={c.recordingUrl}
+                      className="inline-flex items-center gap-1.5 text-accent-light hover:text-accent text-sm font-semibold"
+                    >
+                      <Download size={12} /> Download
+                    </a>
+                  }
+                />
               )}
             </CardContent>
           </Card>
+
           {c.extractedData && Object.keys(c.extractedData).length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Extracted data</CardTitle>
+                <CardTitle>Extracted data</CardTitle>
               </CardHeader>
-              <CardContent>
-                <pre className="text-xs whitespace-pre-wrap break-words">
-                  {JSON.stringify(c.extractedData, null, 2)}
-                </pre>
+              <CardContent className="space-y-2">
+                {Object.entries(c.extractedData).map(([k, v]) => (
+                  <Row
+                    key={k}
+                    k={k}
+                    v={typeof v === 'object' ? JSON.stringify(v) : String(v ?? '—')}
+                  />
+                ))}
               </CardContent>
             </Card>
           )}
@@ -124,11 +199,15 @@ export function CallDetailPage() {
   );
 }
 
-function Row({ k, v }: { k: string; v: React.ReactNode }) {
+function Row({ k, v, mono }: { k: string; v: React.ReactNode; mono?: boolean }) {
   return (
-    <div className="flex justify-between gap-3">
-      <span className="text-muted-foreground">{k}</span>
-      <span className="font-medium text-right">{v}</span>
+    <div className="flex justify-between items-center gap-3 text-sm">
+      <span className="text-text-tertiary uppercase tracking-wider text-2xs">{k}</span>
+      <span
+        className={cn('text-right font-medium text-text', mono && 'font-mono tabular-nums')}
+      >
+        {v}
+      </span>
     </div>
   );
 }

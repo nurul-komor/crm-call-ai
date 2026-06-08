@@ -38,6 +38,7 @@ export function SettingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Configure"
         title="Settings"
         description="Manage contact channels, voice profiles, and AI provider credentials."
       />

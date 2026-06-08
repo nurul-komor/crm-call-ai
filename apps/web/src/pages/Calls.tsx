@@ -53,6 +53,7 @@ export function CallsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Insights"
         title="Calls"
         description="Every outbound conversation, with summary, lead score and transcript."
       />

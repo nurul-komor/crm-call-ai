@@ -3,15 +3,20 @@ import type { RequestHandler } from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 
+import { AppError } from '../lib/errors.js';
+
 import { env } from '../config/env.js';
 
 export function corsMiddleware(): RequestHandler {
-  const origins = env().CORS_ORIGINS;
+  const { CORS_ORIGINS: origins, NODE_ENV } = env();
   return cors({
     origin: (origin, cb) => {
-      if (!origin) return cb(null, true); // same-origin / curl
+      if (!origin) return cb(null, true); // same-origin / curl / server-to-server
+      if (NODE_ENV === 'development' && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+        return cb(null, true); // allow any localhost port in dev
+      }
       if (origins.includes(origin)) return cb(null, true);
-      return cb(new Error('cors_origin_not_allowed'));
+      return cb(new AppError('forbidden', 'CORS: origin not allowed', 403));
     },
     credentials: true,
   });

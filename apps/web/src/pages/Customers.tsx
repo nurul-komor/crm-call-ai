@@ -98,6 +98,7 @@ export function CustomersPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Workspace"
         title="Customers"
         description="Your contact universe — import, segment, and dispatch outbound conversations."
         actions={

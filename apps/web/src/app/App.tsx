@@ -13,6 +13,16 @@ import { LiveMonitorPage } from '@/pages/LiveMonitor';
 import { LoginPage } from '@/pages/Login';
 import { SignupPage } from '@/pages/Signup';
 import { SettingsPage } from '@/pages/Settings';
+import { DashboardHomePage } from '@/pages/DashboardHome';
+import { AnalyticsPage } from '@/pages/Analytics';
+import { KnowledgeBasePage } from '@/pages/KnowledgeBase';
+import { AutomationsPage } from '@/pages/Automations';
+import { VoiceProfilesPage } from '@/pages/VoiceProfiles';
+import { AIProvidersPage } from '@/pages/AIProviders';
+import { BillingPage } from '@/pages/Billing';
+import { AdminPanelPage } from '@/pages/AdminPanel';
+import { LeadFormsPage } from '@/pages/LeadForms';
+import { CustomFieldsPage } from '@/pages/CustomFields';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,6 +50,7 @@ export function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
+              <Route path="/dashboard" element={<DashboardHomePage />} />
               <Route path="/customers" element={<CustomersPage />} />
               <Route path="/campaigns" element={<CampaignsPage />} />
               <Route path="/campaigns/new" element={<CampaignBuilderPage />} />
@@ -48,6 +59,15 @@ export function App() {
               <Route path="/calls" element={<CallsPage />} />
               <Route path="/calls/:id" element={<CallDetailPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/knowledge" element={<KnowledgeBasePage />} />
+              <Route path="/automations" element={<AutomationsPage />} />
+              <Route path="/voice" element={<VoiceProfilesPage />} />
+              <Route path="/providers" element={<AIProvidersPage />} />
+              <Route path="/billing" element={<BillingPage />} />
+              <Route path="/admin" element={<AdminPanelPage />} />
+              <Route path="/lead-forms" element={<LeadFormsPage />} />
+              <Route path="/custom-fields" element={<CustomFieldsPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

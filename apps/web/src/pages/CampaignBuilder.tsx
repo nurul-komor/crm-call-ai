@@ -82,6 +82,7 @@ export function CampaignBuilderPage() {
   return (
     <div className="space-y-6 max-w-5xl">
       <PageHeader
+        eyebrow="Workspace"
         title="New campaign"
         description="Configure a new outbound conversation program in 4 quick steps."
         actions={

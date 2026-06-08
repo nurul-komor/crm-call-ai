@@ -84,6 +84,7 @@ export function LiveMonitorPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Operations"
         title="Live monitor"
         description="Real-time transcripts via Socket.IO. Events arrive as soon as the call worker emits them."
         actions={

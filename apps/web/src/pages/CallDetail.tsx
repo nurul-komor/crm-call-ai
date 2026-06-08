@@ -66,6 +66,7 @@ export function CallDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Insights"
         title="Call detail"
         description={<span className="font-mono text-sm text-text-tertiary">{c.callJobId}</span>}
         actions={

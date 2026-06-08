@@ -106,6 +106,7 @@ export function CampaignsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Workspace"
         title="Campaigns"
         description="Outbound conversation programs. Launch, pause, and monitor lifetime performance."
         actions={
@@ -120,20 +121,18 @@ export function CampaignsPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {STATS.map((s, i) => (
-          <Card key={s.label}>
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div
-                  className={`h-8 w-8 rounded-md bg-surface-2 border border-border flex items-center justify-center ${s.color}`}
-                >
-                  <s.icon size={14} strokeWidth={1.75} />
-                </div>
-                <Sparkline points={s.sparkSeed} className={s.color} />
+          <div key={s.label} className="kpi-card">
+            <div className="flex items-start justify-between mb-3">
+              <div
+                className={`h-8 w-8 rounded-md bg-surface-2 border border-border flex items-center justify-center ${s.color}`}
+              >
+                <s.icon size={14} strokeWidth={1.75} />
               </div>
-              <div className="text-3xl font-extrabold tabular-nums">{values[i]}</div>
-              <div className="text-xs text-text-tertiary mt-1">{s.label}</div>
-            </CardContent>
-          </Card>
+              <Sparkline points={s.sparkSeed} className={s.color} />
+            </div>
+            <div className="text-3xl font-extrabold tabular-nums">{values[i]}</div>
+            <div className="text-xs text-text-tertiary mt-1">{s.label}</div>
+          </div>
         ))}
       </div>
 

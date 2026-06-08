@@ -64,7 +64,7 @@ export async function postJson<T>(path: string, body: unknown): Promise<T> {
   try {
     return await api.post(path, { json: body }).json<T>();
   } catch (e) {
-    throw normalizeError(e);
+    throw await normalizeError(e);
   }
 }
 
@@ -72,7 +72,7 @@ export async function putJson<T>(path: string, body: unknown): Promise<T> {
   try {
     return await api.put(path, { json: body }).json<T>();
   } catch (e) {
-    throw normalizeError(e);
+    throw await normalizeError(e);
   }
 }
 
@@ -81,7 +81,7 @@ export async function getJson<T>(path: string, search?: Record<string, string | 
     const url = search ? `${path}?${new URLSearchParams(filterDefined(search))}` : path;
     return await api.get(url).json<T>();
   } catch (e) {
-    throw normalizeError(e);
+    throw await normalizeError(e);
   }
 }
 
@@ -89,7 +89,7 @@ export async function del(path: string): Promise<void> {
   try {
     await api.delete(path);
   } catch (e) {
-    throw normalizeError(e);
+    throw await normalizeError(e);
   }
 }
 
